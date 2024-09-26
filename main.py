@@ -1,44 +1,32 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, redirect, url_for
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired
 
 # Создаем приложение Flask
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
 
-# Настраиваем базу данных
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Определяем форму
+class NameForm(FlaskForm):
+    name = StringField('Your name', validators=[DataRequired()])
+    submit = SubmitField('Submit')
 
-# Создаем объект SQLAlchemy
-db = SQLAlchemy(app)
+# Главная страница с формой
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    form = NameForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        return redirect(url_for( 'hello', name=name))
+    return render_template('index.html', form=form)
 
-# Определяем модель данных (таблицу в базе данных)
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)\
-
-    def __repr__(self):
-        return f'<User {self.username}>'
-
-# Создаем таблицу в базе данных
-with app.app_context():
-    db.create_all()
-
-# Добавляем запись в таблицу
-@app.route('/add_user')
-def add_user():
-    new_user = User(username='John Doe')
-    db.session.add(new_user)
-    db.session.commit()
-    return 'User added successfully!'
-
-# Получаем записи из таблицы
-@app.route('/users')
-def get_users():
-    users = User.query.all()
-    return str(users)
+# Страница приветствия
+@app.route('/hello/<name>')
+def hello(name):
+    return f'hello, {name}!'
 
 # Запускаем приложение Flask
 if __name__ == '__main__':
     app.run(debug=True)
-
 
